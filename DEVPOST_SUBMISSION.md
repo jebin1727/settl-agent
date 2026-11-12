@@ -1,5 +1,8 @@
 # Devpost submission text — copy/paste into the form
 
+Demo video: https://youtu.be/mJHWBZQGx-Y
+Code: https://github.com/jebin1727/settl-agent
+
 ## Project name
 SettlAgent
 

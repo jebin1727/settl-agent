@@ -22,9 +22,9 @@ def get_llm(settings: Settings | None = None) -> BaseChatModel:
             raise LLMProviderError("LLM_PROVIDER=gemini but GEMINI_API_KEY is not set.")
         from langchain_google_genai import ChatGoogleGenerativeAI
 
-        logger.info("llm_provider_selected", provider="gemini", model="gemini-3.8-flash")
+        logger.info("llm_provider_selected", provider="gemini", model=settings.gemini_model)
         return ChatGoogleGenerativeAI(
-            model="gemini-3.8-flash",
+            model=settings.gemini_model,
             google_api_key=settings.gemini_api_key,
             temperature=0,
             # Default retry count backs off for minutes on a 429 (observed

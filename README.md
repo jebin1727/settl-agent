@@ -21,6 +21,8 @@ PayPal and AI."
   and `/api/*` route is gated server-side.
 - **Full audit trail** — every decision records its actor, rationale and provider.
 
+**Demo video:** https://youtu.be/mJHWBZQGx-Y
+
 See [`docs/ONBOARDING.md`](./docs/ONBOARDING.md) for architecture diagrams, the step-by-step flows, how the AI is
 used, and a demo walkthrough (also as [Word](./docs/SettlAgent_Onboarding_Guide.docx)).
 

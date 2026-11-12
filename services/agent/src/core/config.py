@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     # llm
     llm_provider: Literal["gemini", "ollama"] = Field(default="gemini", alias="LLM_PROVIDER")
     gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
+    gemini_model: str = Field(default="gemini-3.8-flash", alias="GEMINI_MODEL")
     ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")
     ollama_model: str = Field(default="qwen3:8b", alias="OLLAMA_MODEL")
 
