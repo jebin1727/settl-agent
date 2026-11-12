@@ -51,6 +51,13 @@ Prerequisites: Docker Desktop, Node 20+, pnpm, `uv` (Python).
 For local development without Docker, see per-service instructions in `apps/web/README.md` and
 `services/agent/README.md`.
 
+## Judge quick start
+
+1. `.env` as above (PayPal **Sandbox** credentials; Gemini key or `LLM_PROVIDER=ollama`; any `ADMIN_PASSWORD`).
+2. `docker compose -f infra/docker-compose.yml up --build` → http://localhost:3000 → sign in as `admin`.
+3. Settlements: create a payout under $500 (auto-paid) and one over $500 (held for approval).
+   Disputes: click **Simulate dispute** to watch the AI triage with its rationale.
+
 ## Testing
 
 - Agent service: `cd services/agent && uv run pytest`

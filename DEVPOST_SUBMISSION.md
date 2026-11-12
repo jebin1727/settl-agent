@@ -84,6 +84,25 @@ Deploying with a registered PayPal webhook for a fully live (not
 locally-triggered) autonomous loop, and agent-to-agent negotiation between
 a provider-side and platform-side agent on disputed amounts.
 
+## Built during the Submission Period
+SettlAgent was created from scratch for this hackathon (first commit November 2026,
+inside the Oct 1 – Nov 12 window). In the final days we added the Payment Guardian
+(human-approval gate), an authenticated operator console, a five-axis dispute risk
+radar, a decision-replay view and the architecture/onboarding documentation.
+
+## Sponsor tools
+**AG Grid** powers every data table in the console (settlements ledger, disputes, audit log).
+
+## Testing instructions for judges
+No hosted deployment is required: everything runs locally with Docker.
+1. Clone https://github.com/jebin1727/settl-agent and copy `.env.example` to `.env`.
+2. Add free PayPal **Sandbox** Client ID/Secret (developer.paypal.com), a Gemini key (or set
+   `LLM_PROVIDER=ollama`), and choose any `ADMIN_PASSWORD` and `SESSION_SECRET`.
+3. `docker compose -f infra/docker-compose.yml up --build`, open http://localhost:3000 and sign in
+   as `admin` with the password you chose.
+4. Create a settlement under $500 (auto-paid), one over $500 (held → approve/reject), then use
+   **Simulate dispute** on the Disputes page. Full walkthrough: `docs/ONBOARDING.md`.
+
 ## Built With
 fastapi, langchain, python, paypal-agent-toolkit, nextjs, react, typescript,
-mui, postgresql, redis, arq, docker, gemini, ollama, pytest, vitest
+mui, ag-grid, postgresql, redis, arq, docker, gemini, ollama, pytest, vitest
