@@ -45,7 +45,14 @@ Dispute data from PayPal:
 {dispute_json}
 
 Give a risk_score from 0.0 (clearly safe to auto-resolve) to 1.0 (high risk, must escalate), \
-your reasoning citing specific factors from the data above, and a recommended_action."""
+your reasoning citing specific factors from the data above, and a recommended_action.
+
+Also break your assessment into five named factors, each scored 0.0-1.0 independently (they do \
+not need to sum to anything or match risk_score exactly — they are your view of that specific \
+angle): fraud_risk (likelihood this is fraudulent, not genuine), policy_risk (likelihood policy \
+doesn't clearly favor either side), chargeback_risk (likelihood this escalates to a card-network \
+chargeback), identity_risk (likelihood the buyer/account identity itself is suspicious), and \
+merchant_risk (likelihood the merchant/provider side is at fault)."""
 
 
 def build_synthetic_dispute_payload(request: SimulateDisputeRequestDTO) -> tuple[str, dict]:
@@ -132,12 +139,26 @@ class DisputeService:
                 "dispute_escalated", dispute_id=dispute_id, risk_score=float(risk_score), simulated=simulated
             )
 
+        risk_breakdown = assessment.as_breakdown()
+
+        # Pulled from the actual PayPal (or synthetic) dispute payload, same
+        # shape either way — see build_synthetic_dispute_payload(). Never
+        # guessed or re-derived from the LLM's output.
+        amount_raw = dispute_payload.get("dispute_amount", {}).get("value")
+        amount = Decimal(str(amount_raw)) if amount_raw is not None else None
+        currency_code = dispute_payload.get("dispute_amount", {}).get("currency_code")
+        reason = dispute_payload.get("reason")
+
         await self._disputes.record_decision(
             dispute,
             risk_score=risk_score,
             decision=decision,
             rationale=assessment.reasoning,
             status=status,
+            risk_breakdown=risk_breakdown,
+            amount=amount,
+            currency_code=currency_code,
+            reason=reason,
         )
         await self._audit.record(
             request_id=get_request_id(),
@@ -149,6 +170,7 @@ class DisputeService:
                 "decision": decision,
                 "status": status,
                 "rationale": assessment.reasoning,
+                "risk_breakdown": risk_breakdown,
                 "llm_provider": self._settings.llm_provider,
                 "simulated": simulated,
             },

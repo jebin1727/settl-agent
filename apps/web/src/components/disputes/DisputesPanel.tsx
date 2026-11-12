@@ -9,15 +9,13 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import { m } from "framer-motion";
-import { useMemo, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
-import { DataTable } from "@/components/common/DataTable";
-import { StatusBadge } from "@/components/common/StatusBadge";
 import { TableSkeleton } from "@/components/common/TableSkeleton";
+import { DisputeCaseCard } from "@/components/disputes/DisputeCaseCard";
 import { useDisputes, useSimulateDispute, useTriageDispute } from "@/hooks/useDisputes";
-import type { DisputeDTO, SimulatedDisputeReason } from "@/types/api";
+import type { SimulatedDisputeReason } from "@/types/api";
 
 const SIMULATED_REASONS: { value: SimulatedDisputeReason; label: string }[] = [
   { value: "ITEM_NOT_RECEIVED", label: "Item not received" },
@@ -85,34 +83,14 @@ function SimulateDisputeForm() {
   );
 }
 
-export function DisputesPanel() {
+interface DisputesPanelProps {
+  onViewReplay?: (disputeId: string) => void;
+}
+
+export function DisputesPanel({ onViewReplay }: DisputesPanelProps) {
   const { data, isLoading } = useDisputes();
   const triage = useTriageDispute();
   const [disputeId, setDisputeId] = useState("");
-
-  // The reasoning log — this is the "make the AI legible" piece: every
-  // decision's full rationale text, not just a status badge. See
-  // SA-Arch.md §9.
-  const columnDefs = useMemo<ColDef<DisputeDTO>[]>(
-    () => [
-      { field: "paypal_dispute_id", headerName: "Dispute" },
-      {
-        field: "status",
-        headerName: "Status",
-        cellRenderer: (params: ICellRendererParams<DisputeDTO>) =>
-          params.value ? <StatusBadge status={params.value} /> : null,
-      },
-      { field: "risk_score", headerName: "Risk score" },
-      { field: "decision", headerName: "Decision" },
-      { field: "rationale", headerName: "Agent reasoning", flex: 3, wrapText: true, autoHeight: true },
-      {
-        field: "created_at",
-        headerName: "Created",
-        valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleString() : ""),
-      },
-    ],
-    []
-  );
 
   const handleTriage = (event: FormEvent) => {
     event.preventDefault();
@@ -121,6 +99,10 @@ export function DisputesPanel() {
 
   return (
     <Stack spacing={3}>
+      <Typography variant="h5" sx={{ fontWeight: 700 }}>
+        Disputes
+      </Typography>
+
       <SimulateDisputeForm />
 
       <Typography variant="h6">Triage a real dispute</Typography>
@@ -144,11 +126,23 @@ export function DisputesPanel() {
         )}
       </Stack>
 
-      <Typography variant="h6">Dispute reasoning log</Typography>
+      <Typography variant="h6">Dispute cases</Typography>
       {isLoading ? (
         <TableSkeleton />
+      ) : (data ?? []).length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          No disputes yet — triage or simulate one above to see it here.
+        </Typography>
       ) : (
-        <DataTable<DisputeDTO> rowData={data ?? []} columnDefs={columnDefs} getRowId={(row) => row.id} />
+        <Stack spacing={2}>
+          {(data ?? []).map((dispute) => (
+            <DisputeCaseCard
+              key={dispute.id}
+              dispute={dispute}
+              onViewReplay={() => onViewReplay?.(dispute.paypal_dispute_id)}
+            />
+          ))}
+        </Stack>
       )}
     </Stack>
   );

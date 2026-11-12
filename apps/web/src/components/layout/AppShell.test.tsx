@@ -1,15 +1,23 @@
 // Proves the sidebar replaced the old top-tabs as the real navigation
 // mechanism: clicking a nav item must report the selected section back to
 // the controlling page (AppShell is a controlled component — it owns no
-// section state itself, see dashboard/page.tsx).
+// section state itself, see dashboard/page.tsx). Needs a QueryClientProvider
+// now that the header's AgentOnlineBadge reads real agent health via
+// useAgentHealth() — not something the old header-only AppShell needed.
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { AppShell } from "./AppShell";
 
+function renderWithQueryClient(ui: React.ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
+
 describe("AppShell sidebar navigation", () => {
   it("renders the children content passed to it", () => {
-    render(
+    renderWithQueryClient(
       <AppShell activeSection="settlements" onSectionChange={() => {}}>
         <div>dashboard content</div>
       </AppShell>
@@ -20,7 +28,7 @@ describe("AppShell sidebar navigation", () => {
 
   it("calls onSectionChange with the clicked section's key", () => {
     const onSectionChange = vi.fn();
-    render(
+    renderWithQueryClient(
       <AppShell activeSection="settlements" onSectionChange={onSectionChange}>
         <div>content</div>
       </AppShell>
@@ -33,7 +41,7 @@ describe("AppShell sidebar navigation", () => {
 
   it("does not report a change when the active section is clicked again", () => {
     const onSectionChange = vi.fn();
-    render(
+    renderWithQueryClient(
       <AppShell activeSection="settlements" onSectionChange={onSectionChange}>
         <div>content</div>
       </AppShell>

@@ -1,8 +1,11 @@
 "use client";
 
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import GavelOutlinedIcon from "@mui/icons-material/GavelOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
@@ -21,17 +24,27 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 
 import { BrandMark } from "@/components/common/BrandMark";
+import { AgentOnlineBadge } from "@/components/common/AgentOnlineBadge";
 import { heroGradient } from "@/lib/theme";
 
-export type DashboardSection = "settlements" | "disputes" | "activity";
+export type DashboardSection =
+  | "command_center"
+  | "settlements"
+  | "disputes"
+  | "decision_replay"
+  | "activity"
+  | "audit_reports";
 
-const SIDEBAR_WIDTH = 240;
+const SIDEBAR_WIDTH = 248;
 const NAV_ACCENT = "#1E7A5F";
 
 const NAV_ITEMS: { key: DashboardSection; label: string; icon: ReactNode }[] = [
+  { key: "command_center", label: "Command Center", icon: <DashboardOutlinedIcon /> },
   { key: "settlements", label: "Settlements", icon: <ReceiptLongOutlinedIcon /> },
   { key: "disputes", label: "Disputes", icon: <GavelOutlinedIcon /> },
-  { key: "activity", label: "Agent activity", icon: <TimelineOutlinedIcon /> },
+  { key: "decision_replay", label: "Decision Replay", icon: <ReplayOutlinedIcon /> },
+  { key: "activity", label: "Agent Activity", icon: <TimelineOutlinedIcon /> },
+  { key: "audit_reports", label: "Audit & Reports", icon: <FactCheckOutlinedIcon /> },
 ];
 
 interface AppShellProps {
@@ -104,7 +117,10 @@ export function AppShell({ children, activeSection, onSectionChange }: AppShellP
           >
             <MenuIcon />
           </IconButton>
-          <Logo />
+          <Stack sx={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+            <Logo />
+            <AgentOnlineBadge />
+          </Stack>
         </Toolbar>
       </AppBar>
 

@@ -14,6 +14,7 @@ import { useSettlements } from "@/hooks/useSettlements";
 import type { SettlementDTO } from "@/types/api";
 
 import { CreateSettlementForm } from "./CreateSettlementForm";
+import { SettlementPipeline } from "./SettlementPipeline";
 
 export function SettlementsPanel() {
   const { data, isLoading } = useSettlements();
@@ -45,6 +46,12 @@ export function SettlementsPanel() {
 
   return (
     <Stack spacing={3}>
+      <Typography variant="h5" sx={{ fontWeight: 700 }}>
+        Settlements
+      </Typography>
+      <Paper variant="outlined" sx={{ p: 2.5 }}>
+        <SettlementPipeline />
+      </Paper>
       <Paper variant="outlined" sx={{ p: 2.5 }}>
         <VolumeTrend />
       </Paper>

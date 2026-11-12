@@ -18,7 +18,7 @@ import { useMemo } from "react";
 
 import { SegmentedBar } from "@/components/common/SegmentedBar";
 import { StatTile, StatTileSkeleton } from "@/components/common/StatTile";
-import { DisputeRiskStrip } from "@/components/dashboard/DisputeRiskStrip";
+import { DisputeRiskRadar } from "@/components/dashboard/DisputeRiskRadar";
 import { useDisputes } from "@/hooks/useDisputes";
 import { useSettlements } from "@/hooks/useSettlements";
 import { formatCompactCurrency, formatCompactNumber } from "@/lib/format";
@@ -133,7 +133,7 @@ export function OverviewStats() {
               { label: "Open / untriaged", value: disputeBreakdown.open, color: STATUS_MUTED },
             ]}
           />
-          <DisputeRiskStrip disputes={disputes ?? []} />
+          <DisputeRiskRadar disputes={disputes ?? []} />
         </Stack>
       </Paper>
     </Stack>

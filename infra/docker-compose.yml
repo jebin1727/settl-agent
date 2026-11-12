@@ -16,7 +16,11 @@ services:
       timeout: 5s
       retries: 10
     ports:
-      - "5432:5432"
+      # Host-side only — container-to-container traffic still uses the
+      # `postgres` service name on its default 5432 regardless of this
+      # mapping. Moved off 5432 because another project's Postgres
+      # container was already holding that host port.
+      - "5433:5432"
 
   redis:
     image: redis:7-alpine

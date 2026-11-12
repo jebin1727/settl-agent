@@ -7,7 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
@@ -30,6 +30,19 @@ class Dispute(Base):
     # "accept_claim" | "refund" | "escalate" | None (not yet decided)
     decision: Mapped[str | None] = mapped_column(String(20), nullable=True)
     rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # The same LLM call's risk assessment broken into named factors (fraud,
+    # policy, chargeback, identity, merchant — each 0-1), for the dashboard's
+    # radar chart. Nullable: disputes triaged before this column existed
+    # have none, and the UI shows an explicit fallback rather than faking it.
+    risk_breakdown: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    # Pulled straight from the real PayPal dispute payload (or the synthetic
+    # one build_synthetic_dispute_payload() builds in the same shape) at
+    # triage time — not re-derived or guessed. Needed for the dispute case
+    # cards (amount + reason) without fabricating anything client-side.
+    amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    currency_code: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     # clock_timestamp(), not now() — see settlement.py for why.
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.clock_timestamp())

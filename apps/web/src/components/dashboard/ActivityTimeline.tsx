@@ -9,76 +9,73 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
+import { useMemo, useState } from "react";
 
 import { useAuditLogs } from "@/hooks/useAuditLogs";
-import type { AuditLogDTO } from "@/types/api";
+import { ACTION_LABEL, ACTOR_COLOR, actionDomain, summarizeAuditEntry } from "@/lib/auditSummary";
 
-const ACTION_LABEL: Record<string, string> = {
-  settlement_created: "Settlement created",
-  invoice_sent: "Invoice sent",
-  invoice_create_failed: "Invoice creation failed",
-  invoice_send_failed: "Invoice send failed",
-  dispute_triaged: "Dispute triaged",
-};
-
-const ACTOR_COLOR: Record<string, "default" | "primary" | "secondary"> = {
-  settlement_service: "primary",
-  dispute_service: "secondary",
-};
-
-function summarize(entry: AuditLogDTO): string {
-  const d = entry.details;
-  if (entry.action === "settlement_created") {
-    return `$${d.gross_amount} — ${d.description ?? ""}`;
-  }
-  if (entry.action === "invoice_sent") {
-    return `PayPal invoice ${d.invoice_id}`;
-  }
-  if (entry.action === "dispute_triaged") {
-    return `risk ${d.risk_score} → ${d.decision} (${d.status})`;
-  }
-  return JSON.stringify(d);
-}
+type DomainFilter = "all" | "settlement" | "dispute";
 
 export function ActivityTimeline() {
   const { data, isLoading } = useAuditLogs();
-  const entries = data ?? [];
+  const [filter, setFilter] = useState<DomainFilter>("all");
+  const entries = useMemo(() => data ?? [], [data]);
 
-  if (!isLoading && entries.length === 0) {
-    return (
-      <Typography variant="body2" color="text.secondary">
-        No agent activity yet — create a settlement or triage a dispute to see it here.
-      </Typography>
-    );
-  }
+  const filtered = useMemo(
+    () => (filter === "all" ? entries : entries.filter((e) => actionDomain(e.action) === filter)),
+    [entries, filter]
+  );
 
   return (
-    <List dense disablePadding>
-      {entries.map((entry) => (
-        <ListItem key={entry.id} divider sx={{ py: 1 }}>
-          <ListItemText
-            primary={
-              <Stack sx={{ flexDirection: "row", alignItems: "center", gap: 1 }}>
-                <Chip
-                  label={entry.actor.replace("_", " ")}
-                  size="small"
-                  color={ACTOR_COLOR[entry.actor] ?? "default"}
-                  variant="outlined"
-                />
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {ACTION_LABEL[entry.action] ?? entry.action}
-                </Typography>
-              </Stack>
-            }
-            secondary={
-              <>
-                {summarize(entry)} · {new Date(entry.created_at).toLocaleString()}
-              </>
-            }
-          />
-        </ListItem>
-      ))}
-    </List>
+    <Stack spacing={2}>
+      <ToggleButtonGroup
+        value={filter}
+        exclusive
+        size="small"
+        onChange={(_, value: DomainFilter | null) => value && setFilter(value)}
+      >
+        <ToggleButton value="all">All</ToggleButton>
+        <ToggleButton value="settlement">Settlements</ToggleButton>
+        <ToggleButton value="dispute">Disputes</ToggleButton>
+      </ToggleButtonGroup>
+
+      {!isLoading && filtered.length === 0 && (
+        <Typography variant="body2" color="text.secondary">
+          {entries.length === 0
+            ? "No agent activity yet — create a settlement or triage a dispute to see it here."
+            : "No events match this filter."}
+        </Typography>
+      )}
+
+      <List dense disablePadding>
+        {filtered.map((entry) => (
+          <ListItem key={entry.id} divider sx={{ py: 1 }}>
+            <ListItemText
+              primary={
+                <Stack sx={{ flexDirection: "row", alignItems: "center", gap: 1 }}>
+                  <Chip
+                    label={entry.actor.replace("_", " ")}
+                    size="small"
+                    color={ACTOR_COLOR[entry.actor] ?? "default"}
+                    variant="outlined"
+                  />
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {ACTION_LABEL[entry.action] ?? entry.action}
+                  </Typography>
+                </Stack>
+              }
+              secondary={
+                <>
+                  {summarizeAuditEntry(entry)} · {new Date(entry.created_at).toLocaleString()}
+                </>
+              }
+            />
+          </ListItem>
+        ))}
+      </List>
+    </Stack>
   );
 }

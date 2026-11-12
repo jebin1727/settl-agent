@@ -24,6 +24,14 @@ export interface CreateSettlementRequest {
 export type DisputeStatus = "open" | "auto_resolved" | "escalated" | "closed";
 export type DisputeDecision = "accept_claim" | "refund" | "escalate";
 
+export interface RiskBreakdown {
+  fraud_risk: number;
+  policy_risk: number;
+  chargeback_risk: number;
+  identity_risk: number;
+  merchant_risk: number;
+}
+
 export interface DisputeDTO {
   id: string;
   paypal_dispute_id: string;
@@ -31,6 +39,10 @@ export interface DisputeDTO {
   risk_score: string | null;
   decision: DisputeDecision | null;
   rationale: string | null;
+  risk_breakdown: RiskBreakdown | null;
+  amount: string | null;
+  currency_code: string | null;
+  reason: string | null;
   created_at: string;
   resolved_at: string | null;
 }

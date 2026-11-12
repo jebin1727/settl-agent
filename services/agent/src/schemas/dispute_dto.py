@@ -10,11 +10,30 @@ class DisputeRiskAssessment(BaseModel):
     """What the LLM returns via structured output — see
     services/dispute_service.py. This is the model's reasoning made
     inspectable, not a black box: risk_score and reasoning both get
-    persisted to the audit trail and surfaced in the dashboard."""
+    persisted to the audit trail and surfaced in the dashboard.
+
+    The five *_risk fields are the same overall assessment broken into
+    named factors (for the dashboard's radar chart) — not five separate
+    model calls, one call asked to reason about five angles at once."""
 
     risk_score: float = Field(ge=0, le=1, description="0 = clearly safe to auto-resolve, 1 = high risk")
     reasoning: str = Field(description="Why this risk score — cite specific factors from the dispute data")
     recommended_action: Literal["auto_resolve", "escalate"]
+
+    fraud_risk: float = Field(ge=0, le=1, description="Likelihood this is fraudulent, not a genuine dispute")
+    policy_risk: float = Field(ge=0, le=1, description="Likelihood PayPal/merchant policy doesn't clearly favor either side")
+    chargeback_risk: float = Field(ge=0, le=1, description="Likelihood this escalates into a card-network chargeback")
+    identity_risk: float = Field(ge=0, le=1, description="Likelihood the buyer/account identity itself is suspicious")
+    merchant_risk: float = Field(ge=0, le=1, description="Likelihood the merchant/provider side is at fault")
+
+    def as_breakdown(self) -> dict[str, float]:
+        return {
+            "fraud_risk": self.fraud_risk,
+            "policy_risk": self.policy_risk,
+            "chargeback_risk": self.chargeback_risk,
+            "identity_risk": self.identity_risk,
+            "merchant_risk": self.merchant_risk,
+        }
 
 
 class DisputeTriageResultDTO(BaseModel):
@@ -53,6 +72,10 @@ class DisputeSummaryDTO(BaseModel):
     risk_score: Decimal | None
     decision: Literal["accept_claim", "refund", "escalate"] | None
     rationale: str | None
+    risk_breakdown: dict[str, float] | None
+    amount: Decimal | None
+    currency_code: str | None
+    reason: str | None
     created_at: datetime
     resolved_at: datetime | None
 

@@ -35,6 +35,11 @@ def _make_service(risk_score: float, recommended_action: str, llm_provider: str 
             risk_score=risk_score,
             reasoning="Small amount, standard reason code, no fraud indicators.",
             recommended_action=recommended_action,
+            fraud_risk=risk_score,
+            policy_risk=risk_score,
+            chargeback_risk=risk_score,
+            identity_risk=risk_score,
+            merchant_risk=risk_score,
         )
     )
     llm.with_structured_output.return_value = structured

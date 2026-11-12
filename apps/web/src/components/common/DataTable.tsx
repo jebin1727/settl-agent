@@ -29,7 +29,18 @@ export function DataTable<T>({ rowData, columnDefs, height = 420, getRowId }: Da
         rowData={rowData}
         columnDefs={columnDefs}
         theme={theme}
-        defaultColDef={{ sortable: true, resizable: true, filter: true, flex: 1, minWidth: 110 }}
+        defaultColDef={{
+          sortable: true,
+          resizable: true,
+          filter: true,
+          flex: 1,
+          minWidth: 110,
+          // Without this, a row tall enough to fit a wrapped/autoHeight
+          // column (e.g. DisputesPanel's "Agent reasoning") leaves every
+          // other cell in that row anchored to the top with visible dead
+          // space below it instead of centered in the row.
+          cellStyle: { display: "flex", alignItems: "center" },
+        }}
         getRowId={getRowId ? (params) => getRowId(params.data) : undefined}
         animateRows
       />

@@ -80,12 +80,26 @@ class DisputeRepository:
         return dispute
 
     async def record_decision(
-        self, dispute: Dispute, *, risk_score: Decimal, decision: str, rationale: str, status: str
+        self,
+        dispute: Dispute,
+        *,
+        risk_score: Decimal,
+        decision: str,
+        rationale: str,
+        status: str,
+        risk_breakdown: dict[str, float] | None = None,
+        amount: Decimal | None = None,
+        currency_code: str | None = None,
+        reason: str | None = None,
     ) -> Dispute:
         dispute.risk_score = risk_score
         dispute.decision = decision
         dispute.rationale = rationale
         dispute.status = status
+        dispute.risk_breakdown = risk_breakdown
+        dispute.amount = amount
+        dispute.currency_code = currency_code
+        dispute.reason = reason
         await self._session.flush()
         return dispute
 
