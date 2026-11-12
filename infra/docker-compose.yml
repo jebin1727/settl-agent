@@ -1,0 +1,107 @@
+name: settl-agent
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: settl
+      POSTGRES_PASSWORD: settl
+      POSTGRES_DB: settl_agent
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U settl -d settl_agent"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "6379:6379"
+
+  agent:
+    build:
+      context: ../services/agent
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://settl:settl@postgres:5432/settl_agent
+      REDIS_URL: redis://redis:6379/0
+      # Same localhost-vs-container-hostname issue as DATABASE_URL/REDIS_URL
+      # above — .env's OLLAMA_BASE_URL is correct for host-side `pnpm dev`
+      # but "localhost" inside this container means the container itself.
+      # Ollama runs on the Windows host, so it needs Docker Desktop's
+      # host.docker.internal gateway instead.
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ../services/agent
+      dockerfile: Dockerfile
+    # --no-sync: the image's venv already has exactly what `uv sync --no-dev`
+    # installed at build time (Dockerfile). Without this flag, `uv run`
+    # re-checks the environment against pyproject.toml's dev dependency
+    # group and silently re-downloads things like ruff at container startup
+    # — wasted network/time in production, caught by inspecting `docker logs`.
+    command: ["uv", "run", "--no-sync", "arq", "src.workers.worker.WorkerSettings"]
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://settl:settl@postgres:5432/settl_agent
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # worker shares the agent's Dockerfile (and its baked-in HEALTHCHECK,
+    # which curls localhost:8000/healthz), but arq doesn't serve HTTP at
+    # all — that check always failed here, showing a false "unhealthy"
+    # even while the worker was running correctly. No meaningful HTTP
+    # endpoint exists to check instead, so disabling is correct, not a
+    # workaround.
+    healthcheck:
+      disable: true
+
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      AGENT_SERVICE_URL: http://agent:8000
+    depends_on:
+      - agent
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:

@@ -1,0 +1,146 @@
+{
+  "info": {
+    "name": "SettlAgent",
+    "description": "Autonomous settlement and dispute-triage agent for PayPal — built for the PayPal AI Hackathon 2026. See SA-Arch.md in the repo for the full architecture.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "bearer_token", "value": "", "type": "string" },
+    { "key": "settlement_id", "value": "", "type": "string" },
+    { "key": "dispute_id", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{bearer_token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/healthz", "host": ["{{base_url}}"], "path": ["healthz"] },
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/readyz", "host": ["{{base_url}}"], "path": ["readyz"] },
+            "auth": { "type": "noauth" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settlements",
+      "item": [
+        {
+          "name": "Calculate split (no PayPal/DB call)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/v1/settlements/calculate-split",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "settlements", "calculate-split"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gross_amount\": \"100.00\",\n  \"platform_fee_percent\": \"10\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create settlement (pays the provider via a real PayPal Payout)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('settlement_id', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/v1/settlements", "host": ["{{base_url}}"], "path": ["v1", "settlements"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gross_amount\": \"100.00\",\n  \"platform_fee_percent\": \"10\",\n  \"recipient_email\": \"sb-fd6lg53693163@personal.example.com\",\n  \"description\": \"Freelance gig example\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List settlements",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/v1/settlements", "host": ["{{base_url}}"], "path": ["v1", "settlements"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Disputes",
+      "item": [
+        {
+          "name": "Triage a dispute (fetch, classify, resolve/escalate)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/v1/disputes/{{dispute_id}}/triage",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "disputes", "{{dispute_id}}", "triage"]
+            }
+          }
+        },
+        {
+          "name": "List disputes (our DB, with reasoning)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/v1/disputes", "host": ["{{base_url}}"], "path": ["v1", "disputes"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Activity",
+      "item": [
+        {
+          "name": "List audit logs (every action, with its reasoning)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/v1/audit-logs", "host": ["{{base_url}}"], "path": ["v1", "audit-logs"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Simulate PayPal dispute-created event (no auth — PayPal calls this directly)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/webhooks/paypal", "host": ["{{base_url}}"], "path": ["webhooks", "paypal"] },
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"WH-POSTMAN-1\",\n  \"event_type\": \"CUSTOMER.DISPUTE.CREATED\",\n  \"resource_type\": \"dispute\",\n  \"resource\": {\n    \"dispute_id\": \"{{dispute_id}}\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

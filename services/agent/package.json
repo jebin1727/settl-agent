@@ -1,0 +1,11 @@
+{
+  "name": "@settl-agent/agent",
+  "private": true,
+  "scripts": {
+    "dev": "uv run uvicorn src.main:app --reload --port 8000",
+    "build": "uv sync --frozen",
+    "test": "uv run pytest",
+    "lint": "uv run ruff check ."
+  },
+  "_note": "If 'uv' is not found, your shell was opened before uv was installed — open a new terminal window (not just a new tab) and the PATH update from winget will be picked up."
+}
