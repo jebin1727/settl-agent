@@ -10,6 +10,20 @@ drafted recommendation instead of a black-box decision.
 Built for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com) — "Build What's Next with
 PayPal and AI."
 
+## What makes it safe
+
+- **Payment Guardian** — every payout is scored by deterministic rules over your real payout history
+  (large amount, amount anomaly, velocity, high fee, new recipient). Clean payouts go through; risky ones are
+  **held** and nothing moves until an operator approves in the console. Rejecting never pays.
+- **Two-key dispute resolution** — the LLM's recommendation *and* a numeric risk score below 0.3 must both agree
+  before a dispute is auto-resolved. Everything else escalates with the written rationale.
+- **Authenticated console** — single admin login from `.env`, signed httpOnly session cookie, and every page
+  and `/api/*` route is gated server-side.
+- **Full audit trail** — every decision records its actor, rationale and provider.
+
+See [`docs/ONBOARDING.md`](./docs/ONBOARDING.md) for architecture diagrams, the step-by-step flows, how the AI is
+used, and a demo walkthrough (also as [Word](./docs/SettlAgent_Onboarding_Guide.docx)).
+
 See [`SA-Arch.md`](./SA-Arch.md) for the full architecture (layering pattern, folder structure, infra
 decisions) and [`Track.md`](./Track.md) for build status.
 
@@ -26,10 +40,13 @@ decisions) and [`Track.md`](./Track.md) for build status.
 Prerequisites: Docker Desktop, Node 20+, pnpm, `uv` (Python).
 
 1. Copy `.env.example` to `.env` and fill in your PayPal Sandbox Client ID/Secret
-   ([developer.paypal.com](https://developer.paypal.com) → Apps & Credentials → Sandbox) and your
-   `GEMINI_API_KEY` ([Google AI Studio](https://aistudio.google.com/apikey)).
+   ([developer.paypal.com](https://developer.paypal.com) → Apps & Credentials → Sandbox), your
+   `GEMINI_API_KEY` ([Google AI Studio](https://aistudio.google.com/apikey)), and choose your own
+   `ADMIN_PASSWORD` and a long random `SESSION_SECRET` for the console login. `GUARDIAN_REVIEW_THRESHOLD`
+   (default 500) sets the payout amount that always needs human approval.
 2. From the repo root: `docker compose -f infra/docker-compose.yml up --build`
-3. Dashboard: http://localhost:3000 · Agent API: http://localhost:8000/healthz
+3. Open http://localhost:3000 → **Sign in to the console** (username `ADMIN_USERNAME`, default `admin`, and your
+   `ADMIN_PASSWORD`). Agent API health: http://localhost:8000/healthz
 
 For local development without Docker, see per-service instructions in `apps/web/README.md` and
 `services/agent/README.md`.

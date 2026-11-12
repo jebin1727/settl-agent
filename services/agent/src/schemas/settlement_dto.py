@@ -49,8 +49,12 @@ class SettlementResultDTO(BaseModel):
     gross_amount: Decimal
     platform_fee_amount: Decimal
     provider_amount: Decimal
-    status: Literal["pending", "paid_out", "payout_failed", "failed"]
+    status: Literal["pending", "awaiting_approval", "rejected", "paid_out", "payout_failed", "failed"]
     paypal_payout_batch_id: str | None
+    recipient_email: str | None = None
+    description: str | None = None
+    risk_score: Decimal | None = None
+    risk_flags: list[dict] | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

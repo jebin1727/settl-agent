@@ -14,6 +14,7 @@ import { useSettlements } from "@/hooks/useSettlements";
 import type { SettlementDTO } from "@/types/api";
 
 import { CreateSettlementForm } from "./CreateSettlementForm";
+import { ApprovalQueue } from "./ApprovalQueue";
 import { SettlementPipeline } from "./SettlementPipeline";
 
 export function SettlementsPanel() {
@@ -49,6 +50,7 @@ export function SettlementsPanel() {
       <Typography variant="h5" sx={{ fontWeight: 700 }}>
         Settlements
       </Typography>
+      <ApprovalQueue />
       <Paper variant="outlined" sx={{ p: 2.5 }}>
         <SettlementPipeline />
       </Paper>

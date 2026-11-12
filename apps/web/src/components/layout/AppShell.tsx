@@ -7,6 +7,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
@@ -20,6 +21,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { alpha } from "@mui/material/styles";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
@@ -69,6 +71,7 @@ function Logo() {
 }
 
 export function AppShell({ children, activeSection, onSectionChange }: AppShellProps) {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navList = (
@@ -119,7 +122,19 @@ export function AppShell({ children, activeSection, onSectionChange }: AppShellP
           </IconButton>
           <Stack sx={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
             <Logo />
-            <AgentOnlineBadge />
+            <Stack sx={{ flexDirection: "row", alignItems: "center", gap: 1 }}>
+              <AgentOnlineBadge />
+              <IconButton
+                color="inherit"
+                aria-label="Sign out"
+                onClick={async () => {
+                  await fetch("/api/auth/logout", { method: "POST" });
+                  router.replace("/login");
+                }}
+              >
+                <LogoutOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Stack>
           </Stack>
         </Toolbar>
       </AppBar>

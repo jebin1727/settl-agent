@@ -2,6 +2,7 @@
 
 import AutorenewOutlinedIcon from "@mui/icons-material/AutorenewOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import GppMaybeOutlinedIcon from "@mui/icons-material/GppMaybeOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import TaskAltOutlinedIcon from "@mui/icons-material/TaskAltOutlined";
@@ -51,6 +52,24 @@ const FEATURES: { title: string; body: string; icon: ReactNode; color: string }[
   },
 ];
 
+const AGENTS: { name: string; body: string; color: string }[] = [
+  {
+    name: "Payment Guardian",
+    body: "Scores every payout against your real history — large amount, amount anomaly, velocity, fee ratio, new recipient — and holds risky ones before money moves.",
+    color: "#B06E00",
+  },
+  {
+    name: "Dispute Investigation",
+    body: "Reads each PayPal dispute, produces a risk score with a written rationale, then resolves or escalates it through PayPal's Disputes API.",
+    color: "#6250d6",
+  },
+  {
+    name: "Human operator",
+    body: "Held payouts and escalated disputes wait for an authenticated operator. Approve releases the real payout; reject never pays.",
+    color: "#1E7A5F",
+  },
+];
+
 const STEPS: { label: string; body: string; icon: ReactNode }[] = [
   {
     label: "Job marked complete",
@@ -58,8 +77,13 @@ const STEPS: { label: string; body: string; icon: ReactNode }[] = [
     icon: <TaskAltOutlinedIcon />,
   },
   {
+    label: "Guardian checks the risk",
+    body: "Clean payouts go through; risky ones wait for a human to approve.",
+    icon: <GppMaybeOutlinedIcon />,
+  },
+  {
     label: "Agent pays the provider",
-    body: "A real PayPal Payout is sent for the provider's share — automatically.",
+    body: "A real PayPal Payout is sent for the provider's share.",
     icon: <PaymentsOutlinedIcon />,
   },
   {
@@ -158,7 +182,7 @@ export default function LandingPage() {
                     <m.div style={{ display: "inline-block", marginTop: 32 }} whileTap={{ scale: 0.97 }}>
                       <Button
                         component={Link}
-                        href="/dashboard"
+                        href="/login"
                         variant="contained"
                         size="large"
                         sx={{
@@ -168,7 +192,7 @@ export default function LandingPage() {
                           "&:hover": { bgcolor: "rgba(255,255,255,0.88)" },
                         }}
                       >
-                        Open the dashboard
+                        Sign in to the console
                       </Button>
                     </m.div>
                   </m.div>
@@ -295,6 +319,33 @@ export default function LandingPage() {
         </Stack>
       </Container>
 
+      <Container maxWidth="md" sx={{ pb: 8 }}>
+        <Typography variant="h5" sx={{ textAlign: "center", fontWeight: 700, mb: 1 }}>
+          A small team of specialised agents
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mb: 4 }}>
+          Real services with named responsibilities — and a human with the final say. Console access requires sign-in.
+        </Typography>
+        <m.div variants={stagger} initial="hidden" whileInView="show" viewport={VIEWPORT}>
+          <Grid container spacing={2.5}>
+            {AGENTS.map((a) => (
+              <Grid key={a.name} size={{ xs: 12, md: 4 }}>
+                <m.div variants={fadeUp} style={{ height: "100%" }}>
+                  <Paper variant="outlined" sx={{ p: 3, height: "100%", borderTop: `3px solid ${a.color}` }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: a.color }} gutterBottom>
+                      {a.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {a.body}
+                    </Typography>
+                  </Paper>
+                </m.div>
+              </Grid>
+            ))}
+          </Grid>
+        </m.div>
+      </Container>
+
       <Box sx={{ background: heroGradient, color: "common.white", py: 7 }}>
         <Container maxWidth="md">
           <Typography variant="h5" sx={{ textAlign: "center", mb: 5, fontWeight: 700 }}>
@@ -303,7 +354,7 @@ export default function LandingPage() {
           <m.div variants={stagger} initial="hidden" whileInView="show" viewport={VIEWPORT}>
             <Grid container spacing={3}>
               {STEPS.map((s, i) => (
-                <Grid key={s.label} size={{ xs: 12, sm: 4 }}>
+                <Grid key={s.label} size={{ xs: 12, sm: 6, md: 3 }}>
                   <m.div variants={fadeUp}>
                     <Stack spacing={1.5} sx={{ alignItems: "center", textAlign: "center" }}>
                       <Stack

@@ -16,6 +16,21 @@ export function useSettlements() {
   });
 }
 
+function useSettlementDecision(action: "approve" | "reject") {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<SettlementDTO>(`/api/settlements/${encodeURIComponent(id)}/${action}`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SETTLEMENTS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
+    },
+  });
+}
+
+export const useApproveSettlement = () => useSettlementDecision("approve");
+export const useRejectSettlement = () => useSettlementDecision("reject");
+
 export function useCreateSettlement() {
   const queryClient = useQueryClient();
 

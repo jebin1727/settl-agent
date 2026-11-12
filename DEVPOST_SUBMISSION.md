@@ -19,7 +19,12 @@ SettlAgent is a backend agent + dashboard with two autonomous loops:
 
 - **Settlement → Payout.** The moment a job is marked complete, the agent
   calculates the platform fee split and sends a real PayPal Sandbox Payout
-  directly to the provider — no invoice, no manual approval step.
+  directly to the provider — no invoice. Routine payouts need no manual step.
+- **Payment Guardian (human in the loop).** Before any money moves, rule-based
+  risk checks over the real payout history (large amount, amount anomaly,
+  velocity, high fee, new recipient) decide whether to pay or hold. Held
+  payouts wait in an approval queue: approving fires the real payout,
+  rejecting never pays. Money decisions are deliberately not left to an LLM.
 - **Dispute → Triage.** A PayPal webhook fires when a dispute is created.
   The agent fetches the dispute, has an LLM assess risk with a visible
   written rationale, auto-resolves low-risk disputes via PayPal's Disputes
@@ -29,7 +34,7 @@ SettlAgent is a backend agent + dashboard with two autonomous loops:
   LLM reasoning and decision logic on demand, with zero PayPal mutation —
   useful for demos, and tagged `simulated` in the audit trail so it's never
   confused with a real case.
-- A dashboard shows all of it live: settlement volume over time, a
+- An authenticated operator console (signed httpOnly session, every page and API route gated) shows all of it live: settlement volume over time, a
   dispute-risk plot against the agent's own auto-resolve threshold, and a
   full audit/reasoning log of every decision the agent made and why.
 
@@ -43,8 +48,8 @@ SettlAgent is a backend agent + dashboard with two autonomous loops:
 - **LLM provider swap**: the exact same risk-classification call runs on
   Gemini or a fully local Ollama model — swapping is a one-line config
   change, proven live both ways.
-- Controller → Service → Repository → DTO layering throughout, 52 backend
-  + 16 frontend tests, Docker Compose for the full stack.
+- Controller → Service → Repository → DTO layering throughout, 65 backend
+  + 17 frontend tests, Docker Compose for the full stack.
 
 ## Challenges we ran into
 - PayPal Sandbox regional quirks (an India-region sandbox account couldn't
@@ -56,6 +61,13 @@ SettlAgent is a backend agent + dashboard with two autonomous loops:
 - Gemini's free tier turned out to cap at 20 requests/day (not just
   per-minute) — a real constraint for a live demo, handled by keeping a
   local Ollama fallback path with zero code changes needed to switch.
+
+## How the AI is used responsibly
+The LLM only does what it is good at — reading messy dispute data and writing a
+risk assessment with a rationale. A dispute auto-resolves only when the model
+recommends it *and* the numeric risk score is under 0.3; either one
+disagreeing escalates it. Payouts are gated by deterministic rules plus a
+human, and every decision lands in an audit trail with its actor and reason.
 
 ## Accomplishments we're proud of
 A real agent that moves real (sandbox) money and makes real, auditable

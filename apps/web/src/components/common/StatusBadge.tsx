@@ -8,6 +8,8 @@ type Tone = "success" | "warning" | "error" | "info" | "default";
 
 const TONE_BY_STATUS: Record<string, Tone> = {
   pending: "default",
+  awaiting_approval: "warning",
+  rejected: "error",
   paid_out: "success",
   payout_failed: "warning",
   failed: "error",

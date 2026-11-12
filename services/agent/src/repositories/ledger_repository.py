@@ -19,12 +19,26 @@ class SettlementRepository:
         self._session = session
 
     async def create(
-        self, gross_amount: Decimal, platform_fee_amount: Decimal, provider_amount: Decimal
+        self,
+        gross_amount: Decimal,
+        platform_fee_amount: Decimal,
+        provider_amount: Decimal,
+        *,
+        recipient_email: str | None = None,
+        description: str | None = None,
+        risk_score: Decimal | None = None,
+        risk_flags: list | None = None,
+        status: str = "pending",
     ) -> Settlement:
         settlement = Settlement(
             gross_amount=gross_amount,
             platform_fee_amount=platform_fee_amount,
             provider_amount=provider_amount,
+            recipient_email=recipient_email,
+            description=description,
+            risk_score=risk_score,
+            risk_flags=risk_flags,
+            status=status,
         )
         self._session.add(settlement)
         await self._session.flush()
@@ -39,6 +53,11 @@ class SettlementRepository:
         settlement_service.create_and_payout."""
         settlement.paypal_payout_batch_id = paypal_payout_batch_id
         settlement.status = "paid_out"
+        await self._session.flush()
+        return settlement
+
+    async def mark_status(self, settlement: Settlement, status: str) -> Settlement:
+        settlement.status = status
         await self._session.flush()
         return settlement
 

@@ -12,10 +12,15 @@ export const ACTION_LABEL: Record<string, string> = {
   invoice_create_failed: "Invoice creation failed",
   invoice_send_failed: "Invoice send failed",
   dispute_triaged: "Dispute triaged",
+  guardian_assessed: "Guardian assessment",
+  settlement_approved: "Payout approved by operator",
+  settlement_rejected: "Payout rejected by operator",
 };
 
-export const ACTOR_COLOR: Record<string, "default" | "primary" | "secondary"> = {
+export const ACTOR_COLOR: Record<string, "default" | "primary" | "secondary" | "warning" | "success"> = {
   settlement_service: "primary",
+  payment_guardian: "warning",
+  human_operator: "success",
   dispute_service: "secondary",
 };
 
@@ -35,6 +40,15 @@ export function summarizeAuditEntry(entry: AuditLogDTO): string {
   }
   if (entry.action === "payout_failed") {
     return `${d.error ?? "Unknown error"}`;
+  }
+  if (entry.action === "guardian_assessed") {
+    const flags = (d.flags as { rule: string }[] | undefined) ?? [];
+    return flags.length === 0
+      ? `risk ${d.risk_score} — clean, auto-approved`
+      : `risk ${d.risk_score} — ${flags.map((f) => f.rule).join(", ")} → held for approval`;
+  }
+  if (entry.action === "settlement_approved" || entry.action === "settlement_rejected") {
+    return `settlement ${String(d.settlement_id).slice(0, 8)}`;
   }
   if (entry.action === "invoice_sent") {
     return `PayPal invoice ${d.invoice_id}`;

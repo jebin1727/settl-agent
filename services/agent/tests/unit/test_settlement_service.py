@@ -66,8 +66,13 @@ def _make_service():
         provider_amount=Decimal("90.00"),
         status="pending",
         paypal_payout_batch_id=None,
+        recipient_email="provider@example.com",
+        description="Freelance gig",
+        risk_score=Decimal("0"),
     )
     settlement_repo.create.return_value = settlement_row
+    settlement_repo.get.return_value = settlement_row
+    settlement_repo.list_recent.return_value = []
 
     audit_repo = AsyncMock()
 
@@ -115,3 +120,51 @@ async def test_create_and_payout_marks_failed_when_paypal_call_fails():
 
     settlement_repo.mark_failed.assert_awaited_once_with(settlement_row)
     settlement_repo.mark_paid_out.assert_not_called()
+
+
+async def test_large_settlement_is_held_not_paid():
+    service, paypal_repo, settlement_repo, _ = _make_service()
+    request = CreateSettlementRequestDTO(
+        gross_amount=Decimal("900.00"),
+        platform_fee_percent=Decimal("10"),
+        recipient_email="provider@example.com",
+        description="Big job",
+    )
+
+    await service.create_and_payout(request)
+
+    paypal_repo.create_payout.assert_not_called()
+    _, kwargs = settlement_repo.create.call_args
+    assert kwargs["status"] == "awaiting_approval"
+    assert kwargs["risk_flags"][0]["rule"] == "LARGE_AMOUNT"
+
+
+async def test_approve_releases_held_payout():
+    service, paypal_repo, settlement_repo, settlement_row = _make_service()
+    settlement_row.status = "awaiting_approval"
+
+    await service.approve(settlement_row.id)
+
+    paypal_repo.create_payout.assert_called_once()
+    settlement_repo.mark_paid_out.assert_awaited_once()
+
+
+async def test_reject_never_pays():
+    service, paypal_repo, settlement_repo, settlement_row = _make_service()
+    settlement_row.status = "awaiting_approval"
+
+    await service.reject(settlement_row.id)
+
+    paypal_repo.create_payout.assert_not_called()
+    settlement_repo.mark_status.assert_awaited_once_with(settlement_row, "rejected")
+
+
+async def test_cannot_approve_an_already_paid_settlement():
+    from src.core.errors import ValidationFailedError
+
+    service, paypal_repo, _, settlement_row = _make_service()
+    settlement_row.status = "paid_out"
+
+    with pytest.raises(ValidationFailedError):
+        await service.approve(settlement_row.id)
+    paypal_repo.create_payout.assert_not_called()

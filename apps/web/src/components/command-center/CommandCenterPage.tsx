@@ -46,13 +46,20 @@ export function CommandCenterPage({ onNavigate }: CommandCenterPageProps) {
       settlementCount: s.length,
       grossTotal: s.reduce((sum, row) => sum + Number(row.gross_amount), 0),
       disputesTriaged: d.length,
-      pendingReview: d.filter((row) => row.status === "escalated").length,
+      pendingReview:
+        d.filter((row) => row.status === "escalated").length +
+        s.filter((row) => row.status === "awaiting_approval").length,
     };
   }, [settlements, disputes]);
 
   const pendingDisputes = useMemo(
     () => (disputes ?? []).filter((row) => row.status === "escalated").slice(0, 4),
     [disputes]
+  );
+
+  const heldSettlements = useMemo(
+    () => (settlements ?? []).filter((row) => row.status === "awaiting_approval").slice(0, 4),
+    [settlements]
   );
 
   return (
@@ -123,12 +130,44 @@ export function CommandCenterPage({ onNavigate }: CommandCenterPageProps) {
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                 Needs your review
               </Typography>
-              {pendingDisputes.length === 0 ? (
+              {pendingDisputes.length === 0 && heldSettlements.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   Nothing waiting on a human right now.
                 </Typography>
               ) : (
                 <Stack spacing={1.25}>
+                  {heldSettlements.map((row) => (
+                    <Stack
+                      key={row.id}
+                      sx={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        p: 1.25,
+                        borderRadius: "10px",
+                        border: "1px solid rgba(176,110,0,0.4)",
+                      }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                          Payout ${row.gross_amount} held
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Guardian risk {row.risk_score ?? "—"}
+                        </Typography>
+                      </Box>
+                      <Chip label="Awaiting approval" size="small" color="warning" variant="outlined" />
+                    </Stack>
+                  ))}
+                  {heldSettlements.length > 0 && (
+                    <Typography
+                      variant="body2"
+                      onClick={() => onNavigate("settlements")}
+                      sx={{ color: "primary.main", fontWeight: 600, cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
+                    >
+                      Approve in Settlements →
+                    </Typography>
+                  )}
                   {pendingDisputes.map((d) => (
                     <Stack
                       key={d.id}

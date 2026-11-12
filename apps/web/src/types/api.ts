@@ -2,7 +2,18 @@
 // package is where this would get OpenAPI-generated from eventually — kept
 // hand-written for now since the surface is still small and moving fast.
 
-export type SettlementStatus = "pending" | "paid_out" | "payout_failed" | "failed";
+export type SettlementStatus =
+  | "pending"
+  | "awaiting_approval"
+  | "rejected"
+  | "paid_out"
+  | "payout_failed"
+  | "failed";
+
+export interface GuardianFlag {
+  rule: string;
+  detail: string;
+}
 
 export interface SettlementDTO {
   id: string;
@@ -11,6 +22,10 @@ export interface SettlementDTO {
   provider_amount: string;
   status: SettlementStatus;
   paypal_payout_batch_id: string | null;
+  recipient_email: string | null;
+  description: string | null;
+  risk_score: string | null;
+  risk_flags: GuardianFlag[] | null;
   created_at: string;
 }
 

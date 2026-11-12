@@ -1,9 +1,12 @@
 """Controller: HTTP in, DTO validation, delegates to the service, DTO out.
 Zero business logic lives in this file — see SA-Arch.md §4."""
 
+import uuid
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.config import Settings, get_settings
 from src.core.database import get_db_session
 from src.core.rate_limit import limiter
 from src.core.security import require_internal_token
@@ -21,8 +24,11 @@ from src.services.settlement_service import SettlementService
 router = APIRouter(prefix="/v1/settlements", tags=["settlements"], dependencies=[Depends(require_internal_token)])
 
 
-def get_settlement_service(session: AsyncSession = Depends(get_db_session)) -> SettlementService:
+def get_settlement_service(
+    session: AsyncSession = Depends(get_db_session), settings: Settings = Depends(get_settings)
+) -> SettlementService:
     return SettlementService(
+        review_threshold=settings.guardian_review_threshold,
         paypal_repo=PayPalRepository(),
         settlement_repo=SettlementRepository(session),
         audit_repo=AuditLogRepository(session),
@@ -53,3 +59,25 @@ async def list_settlements(
 ) -> list[SettlementResultDTO]:
     rows = await SettlementRepository(session).list_recent(limit=limit)
     return [SettlementResultDTO.model_validate(row) for row in rows]
+
+
+@router.post("/{settlement_id}/approve", response_model=SettlementResultDTO)
+@limiter.limit("20/minute")
+async def approve_settlement(
+    request: Request,
+    settlement_id: uuid.UUID,
+    service: SettlementService = Depends(get_settlement_service),
+) -> SettlementResultDTO:
+    # Releases a Guardian-held settlement: the moment real PayPal money
+    # actually moves, so rate-limited like create.
+    return await service.approve(settlement_id)
+
+
+@router.post("/{settlement_id}/reject", response_model=SettlementResultDTO)
+@limiter.limit("20/minute")
+async def reject_settlement(
+    request: Request,
+    settlement_id: uuid.UUID,
+    service: SettlementService = Depends(get_settlement_service),
+) -> SettlementResultDTO:
+    return await service.reject(settlement_id)

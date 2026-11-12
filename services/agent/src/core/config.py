@@ -8,6 +8,7 @@ Nothing in this codebase should read `os.environ` directly outside this file.
 
 from functools import lru_cache
 from pathlib import Path
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import Field
@@ -61,6 +62,10 @@ class Settings(BaseSettings):
     # skips signature verification with a loud logged warning — see
     # api/v1/webhooks.py.
     paypal_webhook_id: str = Field(default="", alias="PAYPAL_WEBHOOK_ID")
+
+    # Payment Guardian: settlements at/above this gross amount are held for
+    # human approval instead of being paid out automatically.
+    guardian_review_threshold: Decimal = Field(default=Decimal("500"), alias="GUARDIAN_REVIEW_THRESHOLD")
 
     # llm
     llm_provider: Literal["gemini", "ollama"] = Field(default="gemini", alias="LLM_PROVIDER")

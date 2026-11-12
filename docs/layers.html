@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><title>SettlAgent layers</title>
+<style>
+body{margin:0;background:#fff;font-family:Segoe UI,system-ui,sans-serif;color:#0b2b3b}
+#d{width:980px;padding:24px;background:#fff}
+.layer{border:2px solid;border-radius:14px;padding:12px 14px;margin:0}
+.layer h3{margin:0 0 8px;font-size:15px}
+.row{display:flex;gap:10px}
+.box{flex:1;border-radius:10px;padding:9px 10px;font-size:13px;line-height:1.35;background:#fff;border:1px solid #b8c4ca;text-align:center}
+.box b{display:block;font-size:13.5px;margin-bottom:2px}
+.arrow{text-align:center;font-size:12px;color:#44606d;padding:5px 0}
+.arrow span{display:inline-block;background:#eef3f5;border-radius:999px;padding:2px 12px}
+.u{border-color:#6b7b84;background:#f4f6f7}.w{border-color:#2a78d6;background:#eef5fd}
+.a{border-color:#1E7A5F;background:#eef8f4}.d{border-color:#B06E00;background:#fdf6ea}
+.x{border-color:#6250d6;background:#f3f1fd}
+</style></head><body><div id="d">
+<div class="layer u"><h3>1 · Operator</h3><div class="row"><div class="box"><b>Browser</b>Signs in, creates settlements, approves or rejects held payouts, reviews disputes</div></div></div>
+<div class="arrow"><span>▼ HTTPS · signed httpOnly session cookie</span></div>
+<div class="layer w"><h3>2 · Web app — Next.js 16 (port 3000)</h3><div class="row">
+<div class="box"><b>proxy.ts</b>Session gate: blocks /dashboard and /api/* unless signed in</div>
+<div class="box"><b>Landing · Login · Dashboard</b>React, MUI, TanStack Query — 6 console pages</div>
+<div class="box"><b>BFF API routes</b>Server-side bridge; adds the internal bearer token</div></div></div>
+<div class="arrow"><span>▼ REST + internal bearer token (never visible to the browser)</span></div>
+<div class="layer a"><h3>3 · Agent API — FastAPI (port 8000)  ·  Controller → Service → Repository → DTO</h3><div class="row">
+<div class="box"><b>Controllers</b>api/v1: settlements, disputes, webhooks, audit, health</div>
+<div class="box"><b>Settlement service</b>Fee split, payout, approve / reject</div>
+<div class="box"><b>Payment Guardian</b>Rule-based risk gate (no LLM)</div>
+<div class="box"><b>Dispute service</b>LLM risk triage, auto-resolve or escalate</div>
+<div class="box"><b>Repositories</b>Ledger (DB) and PayPal client</div></div></div>
+<div class="arrow"><span>▼ reads / writes / calls</span></div>
+<div class="row">
+<div class="layer d" style="flex:1"><h3>4 · Data &amp; queue</h3><div class="row"><div class="box"><b>PostgreSQL 16</b>settlements, disputes, audit_logs</div><div class="box"><b>Redis</b>Job queue</div></div></div>
+<div class="layer x" style="flex:1.1"><h3>5 · External services</h3><div class="row"><div class="box"><b>PayPal Sandbox</b>Payouts, Disputes API, Webhooks</div><div class="box"><b>LLM</b>Gemini (hosted) or Ollama (local)</div></div></div>
+</div>
+<div class="arrow"><span>▲ PayPal webhook CUSTOMER.DISPUTE.CREATED → Agent API → Redis queue → Worker (Arq) → Dispute service → LLM</span></div>
+</div></body></html>

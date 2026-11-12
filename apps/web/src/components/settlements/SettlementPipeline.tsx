@@ -3,7 +3,8 @@
 // states, not invented ones. We don't track separate "received"/
 // "verified"/"processing" stages server-side, so labeling stages we don't
 // have would be fabricating data; this uses only the 4 real statuses
-// SettlementStatus supports (see types/api.ts).
+// SettlementStatus supports (see types/api.ts) — including the Payment
+// Guardian's awaiting_approval/rejected states.
 "use client";
 
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -19,8 +20,10 @@ import type { SettlementDTO, SettlementStatus } from "@/types/api";
 
 const STAGES: { status: SettlementStatus; label: string; color: string }[] = [
   { status: "pending", label: "Pending", color: "#5B6B66" },
+  { status: "awaiting_approval", label: "Awaiting approval", color: "#B06E00" },
   { status: "paid_out", label: "Paid Out", color: "#0ca30c" },
   { status: "payout_failed", label: "Payout Failed", color: "#B06E00" },
+  { status: "rejected", label: "Rejected", color: "#8a5a5a" },
   { status: "failed", label: "Failed", color: "#d03b3b" },
 ];
 

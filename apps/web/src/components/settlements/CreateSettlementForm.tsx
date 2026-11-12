@@ -69,8 +69,14 @@ export function CreateSettlementForm() {
       {createSettlement.isError && (
         <Alert severity="error">{(createSettlement.error as Error).message}</Alert>
       )}
-      {createSettlement.isSuccess && (
-        <Alert severity="success">Provider paid via PayPal sandbox Payouts.</Alert>
+      {createSettlement.isSuccess && createSettlement.data.status === "awaiting_approval" && (
+        <Alert severity="warning">
+          Payment Guardian held this payout for approval (risk {createSettlement.data.risk_score}) — no money has
+          moved. Approve it in the queue above.
+        </Alert>
+      )}
+      {createSettlement.isSuccess && createSettlement.data.status === "paid_out" && (
+        <Alert severity="success">Guardian cleared it — provider paid via PayPal sandbox Payouts.</Alert>
       )}
     </Stack>
   );

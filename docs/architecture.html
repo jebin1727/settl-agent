@@ -1,0 +1,138 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SettlAgent Architecture</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:1100px;margin:0 auto;padding:24px;background:#f6f8f9;color:#0b2b3b}
+section{background:#fff;border:1px solid #dde4e7;border-radius:14px;padding:20px;margin:20px 0;overflow:auto}
+button{margin-top:8px;padding:6px 12px;border-radius:8px;border:1px solid #1E7A5F;background:#fff;color:#1E7A5F;cursor:pointer}
+</style></head><body>
+<h1>SettlAgent — Architecture &amp; Flow Diagrams</h1>
+<p>Full guide: ONBOARDING.md. Use the buttons to save each diagram as an image (SVG).</p>
+<section><h2>System architecture</h2><pre class="mermaid">flowchart TB
+  subgraph Users
+    OP[Operator&lt;br/&gt;browser]
+  end
+
+  subgraph WEB[&quot;Web - Next.js 16 (port 3000)&quot;]
+    PROXY[proxy.ts&lt;br/&gt;session gate]
+    UI[Landing / Login / Dashboard&lt;br/&gt;React + MUI + TanStack Query]
+    BFF[BFF API routes /api/*&lt;br/&gt;adds internal token]
+  end
+
+  subgraph AGENT[&quot;Agent API - FastAPI (port 8000)&quot;]
+    CTRL[Controllers&lt;br/&gt;api/v1]
+    SVC[Services&lt;br/&gt;Settlement · Guardian · Dispute]
+    REPO[Repositories&lt;br/&gt;Ledger · PayPal]
+    LLMP[LLM provider switch&lt;br/&gt;Gemini or Ollama]
+  end
+
+  subgraph WORKER[&quot;Worker - Arq&quot;]
+    JOB[triage_dispute_job]
+  end
+
+  PG[(PostgreSQL&lt;br/&gt;settlements · disputes · audit_logs)]
+  RD[(Redis&lt;br/&gt;job queue)]
+  PP[PayPal Sandbox&lt;br/&gt;Payouts · Disputes · Webhooks]
+  LLM[[Gemini API&lt;br/&gt;or local Ollama]]
+
+  OP --&gt; PROXY --&gt; UI
+  UI --&gt; BFF --&gt; CTRL
+  CTRL --&gt; SVC --&gt; REPO
+  SVC --&gt; LLMP --&gt; LLM
+  REPO --&gt; PG
+  REPO --&gt; PP
+  PP -- &quot;CUSTOMER.DISPUTE.CREATED webhook&quot; --&gt; CTRL
+  CTRL -- enqueue --&gt; RD --&gt; JOB --&gt; SVC
+</pre><button onclick="dl(this)">Download SVG</button></section><section><h2>Settlement flow (Payment Guardian)</h2><pre class="mermaid">flowchart TD
+  A[Operator creates settlement&lt;br/&gt;amount · fee % · recipient · note] --&gt; B[Split calculated&lt;br/&gt;platform fee + provider share]
+  B --&gt; C[Payment Guardian scores risk&lt;br/&gt;against real payout history]
+  C --&gt; D{Hold threshold&lt;br/&gt;reached?}
+  D -- &quot;No: clean&quot; --&gt; E[Real PayPal Payout sent]
+  D -- &quot;Yes: risky&quot; --&gt; F[Status: awaiting_approval&lt;br/&gt;NO money moves]
+  F --&gt; G{Human decision&lt;br/&gt;in Approval Queue}
+  G -- Approve --&gt; E
+  G -- Reject --&gt; H[Status: rejected&lt;br/&gt;never paid]
+  E --&gt; I{PayPal result}
+  I -- OK --&gt; J[Status: paid_out&lt;br/&gt;batch id stored]
+  I -- Error --&gt; K[Status: payout_failed]
+  C -.-&gt; L[(Audit log)]
+  G -.-&gt; L
+  J -.-&gt; L
+  K -.-&gt; L
+</pre><button onclick="dl(this)">Download SVG</button></section><section><h2>Dispute flow (AI triage)</h2><pre class="mermaid">sequenceDiagram
+  autonumber
+  participant PP as PayPal
+  participant API as Agent API (webhook)
+  participant Q as Redis queue
+  participant W as Worker
+  participant S as DisputeService
+  participant L as LLM (Gemini / Ollama)
+  participant DB as PostgreSQL
+  participant H as Human operator
+
+  PP-&gt;&gt;API: CUSTOMER.DISPUTE.CREATED (signed)
+  API-&gt;&gt;API: Verify PayPal signature
+  API-&gt;&gt;Q: Enqueue triage_dispute_job
+  API--&gt;&gt;PP: 200 OK immediately
+  Q-&gt;&gt;W: Deliver job
+  W-&gt;&gt;S: triage(dispute_id)
+  S-&gt;&gt;PP: Fetch full dispute details
+  S-&gt;&gt;L: Risk-assessment prompt + dispute JSON
+  L--&gt;&gt;S: Structured result (risk 0-1, 5-axis breakdown, rationale, recommended action)
+  alt risk below 0.3 AND model says auto_resolve
+    S-&gt;&gt;PP: Accept claim (auto-resolve)
+  else anything else
+    S-&gt;&gt;S: Mark escalated
+  end
+  S-&gt;&gt;DB: Save decision + rationale + audit entry
+  DB--&gt;&gt;H: Visible in Disputes, Decision Replay, Activity
+  Note over H: Escalated cases wait for a human
+</pre><button onclick="dl(this)">Download SVG</button></section><section><h2>Data model</h2><pre class="mermaid">erDiagram
+  SETTLEMENTS {
+    uuid id PK
+    numeric gross_amount
+    numeric platform_fee_amount
+    numeric provider_amount
+    string status
+    string paypal_payout_batch_id
+    string recipient_email
+    string description
+    numeric risk_score
+    jsonb risk_flags
+  }
+  DISPUTES {
+    uuid id PK
+    string paypal_dispute_id
+    numeric risk_score
+    string decision
+    text rationale
+    jsonb risk_breakdown
+    numeric amount
+    string reason
+    string status
+  }
+  AUDIT_LOGS {
+    uuid id PK
+    string request_id
+    string actor
+    string action
+    jsonb details
+    timestamp created_at
+  }
+</pre><button onclick="dl(this)">Download SVG</button></section><section><h2>Security model</h2><pre class="mermaid">flowchart LR
+  B[Browser] -- &quot;signed httpOnly cookie&quot; --&gt; P[proxy.ts]
+  P -- valid --&gt; R[Next.js pages + /api/*]
+  P -- &quot;invalid page&quot; --&gt; LG[/login]
+  P -- &quot;invalid API call&quot; --&gt; E401[401 JSON]
+  R -- &quot;Bearer AGENT_INTERNAL_TOKEN&lt;br/&gt;server-side only&quot; --&gt; A[Agent API]
+  PP[PayPal] -- &quot;signed webhook&quot; --&gt; A
+</pre><button onclick="dl(this)">Download SVG</button></section>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+mermaid.initialize({startOnLoad:true, theme:"neutral"});
+window.dl = (b) => {
+  const s = b.parentElement.querySelector("svg");
+  const u = URL.createObjectURL(new Blob([s.outerHTML], {type:"image/svg+xml"}));
+  const a = document.createElement("a"); a.href = u; a.download = "settlagent-diagram.svg"; a.click();
+};
+</script></body></html>

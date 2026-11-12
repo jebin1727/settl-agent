@@ -337,3 +337,12 @@ User-requested, full scope (confirmed: several hours available, chose the full r
 **Verified live**, not just claimed: all 6 pages screenshotted on desktop (1440px), tablet (768px), and mobile (390px, no horizontal overflow on any page); cross-page navigation tested explicitly (a specific dispute's "View Decision Replay" button correctly pre-selects *that* dispute, not just the first one); ran a brand-new real simulated dispute through Ollama post-migration and confirmed `amount`/`currency_code`/`reason` all persisted correctly (not just risk_breakdown, which was already proven earlier).
 
 ---
+
+## 2026-11-12 — Payment Guardian, authentication, docs
+
+- **Payment Guardian**: rule-based pre-payout risk gate (large amount, anomaly vs. median, velocity, high fee, new recipient). Risky payouts are held as `awaiting_approval`; an operator approves (real PayPal payout) or rejects (never pays). Deliberately not LLM-based — money decisions stay deterministic. Verified live: $25 auto-paid, $900 held then approved, rejected payout cannot be approved (422).
+- **Authentication**: single admin account from `.env`, HMAC-signed httpOnly session cookie, `proxy.ts` gates pages (redirect to `/login`) and `/api/*` (401). Verified with curl.
+- **Landing/login/Command Center** updated; named-agent framing maps to real services only (Guardian = rules, Dispute Investigation = LLM).
+- **Docs**: `docs/ONBOARDING.md` (+ Word export, rendered diagrams).
+- **Incident**: a Python write under the wrong encoding truncated `.env` to 0 bytes. Rebuilt from the running containers' environment; PayPal/Gemini keys were empty there and were re-entered by the user. Lesson: write `.env` only with explicit UTF-8, and keep a backup before editing.
+- **Known issue**: Gemini free tier returned 503/timeouts for hours on 2026-11-12; local Ollama is the fallback (`LLM_PROVIDER=ollama`). A request timeout + automatic fallback would harden this.
